@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云服务区域可视化系统 - Cloud AZ Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 云服务区域可视化系统</h1>
+            <p>实时展示全球云服务提供商的可用区域分布 - Cloud AZ Visualizer</p>
+        </header>
+        
+        <!-- 统计信息 -->
+        <div class="stats-container" id="stats-container">
+            <div class="stat-card">
+                <span class="stat-value" id="total-regions">-</span>
+                <div class="stat-label">总区域数</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="total-countries">-</span>
+                <div class="stat-label">覆盖国家</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="total-providers">4</span>
+                <div class="stat-label">云服务商</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="last-update-time">-</span>
+                <div class="stat-label">最后更新</div>
+            </div>
+        </div>
+        
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="provider-selection">
+                <label data-provider="linode">
+                    <input type="checkbox" id="linode" checked>
+                    <span class="provider-badge" style="background: #3498db;"></span>
+                    Linode
+                </label>
+                <label data-provider="digitalocean">
+                    <input type="checkbox" id="digitalocean" checked>
+                    <span class="provider-badge" style="background: #ffb3d9;"></span>
+                    DigitalOcean
+                </label>
+                <label data-provider="aliyun">
+                    <input type="checkbox" id="aliyun" checked>
+                    <span class="provider-badge" style="background: #ff8c00;"></span>
+                    阿里云
+                </label>
+                <label data-provider="tencent">
+                    <input type="checkbox" id="tencent" checked>
+                    <span class="provider-badge" style="background: #2ecc71;"></span>
+                    腾讯云
+                </label>
+            </div>
+            <button id="refresh-btn">🔄 刷新数据</button>
+        </div>
+        
+        <!-- 消息提示区域 -->
+        <div id="message-container"></div>
+        
+        <!-- 世界地图 -->
+        <div class="map-container">
+            <div id="world-map">
+                <div style="text-align: center; padding: 100px; color: #64748b;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
+                    <div style="font-size: 18px; margin-bottom: 10px;">世界地图可视化</div>
+                    <div style="font-size: 14px;" id="map-status">正在初始化 D3.js 地图组件...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 区域数据展示 -->
+        <div class="data-container">
+            <h3>📊 区域分布详情</h3>
+            <div class="regions-grid" id="regions-grid">
+                <div class="loading">正在加载区域数据...</div>
+            </div>
+            
+            <div class="last-updated">
+                <span id="last-updated">数据加载中...</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript库 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    
+    <!-- 主要JavaScript -->
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- 开发环境测试脚本 -->
+    <script src="{{ url_for('static', filename='js/test-map.js') }}"></script>
+    
+    <script>
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 云服务区域可视化系统启动');
+        
+        // 检查必要的库是否加载
+        if (typeof d3 === 'undefined') {
+            console.error('❌ D3.js 库未加载');
+            showMessage('D3.js 库加载失败', 'error');
+            // 不要直接返回，继续初始化应用但跳过地图功能
+        }
+        
+        // 初始化应用
+        if (typeof CloudAZApp !== 'undefined') {
+            window.app = new CloudAZApp();
+        } else {
+            console.error('❌ 主应用脚本未加载');
+            showMessage('应用脚本加载失败', 'error');
+        }
+        
+        // 调试：直接更新统计信息
+        setTimeout(async () => {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('total-regions').textContent = data.total_regions || 0;
+                    document.getElementById('total-countries').textContent = data.total_countries || 0;  
+                    document.getElementById('last-update-time').textContent = new Date().toLocaleDateString('zh-CN');
+                    console.log('✅ 直接更新统计成功:', data);
+                }
+                
+                // 更新地图状态
+                const mapStatus = document.getElementById('map-status');
+                if (mapStatus) {
+                    if (typeof d3 !== 'undefined' && typeof WorldMapVisualizer !== 'undefined') {
+                        mapStatus.textContent = '地图组件已加载，正在渲染世界地图...';
+                    } else {
+                        mapStatus.textContent = '地图库加载中，请稍候...';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ 直接更新统计失败:', error);
+            }
+        }, 2000);
+    });
+    
+    // 显示消息的辅助函数
+    function showMessage(message, type = 'success') {
+        const container = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+        
+        container.appendChild(messageDiv);
+        
+        // 3秒后自动移除消息
+        setTimeout(() => {
+            if (container.contains(messageDiv)) {
+                container.removeChild(messageDiv);
+            }
+        }, 3000);
+    }
+    </script>
+</body>
+</html>

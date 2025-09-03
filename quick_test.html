@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quick Test</title>
+</head>
+<body>
+    <div>测试WorldMapVisualizer组件加载:</div>
+    <div id="test-result">测试中...</div>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <script src="/static/js/map.js"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const result = document.getElementById('test-result');
+        
+        setTimeout(() => {
+            let status = '✅ 所有组件加载成功：<br>';
+            
+            if (typeof d3 !== 'undefined') {
+                status += '✓ D3.js 已加载<br>';
+            } else {
+                status += '✗ D3.js 未加载<br>';
+            }
+            
+            if (typeof topojson !== 'undefined') {
+                status += '✓ TopoJSON 已加载<br>';
+            } else {
+                status += '✗ TopoJSON 未加载<br>';
+            }
+            
+            if (typeof WorldMapVisualizer !== 'undefined') {
+                status += '✓ WorldMapVisualizer 已加载<br>';
+            } else {
+                status += '✗ WorldMapVisualizer 未加载<br>';
+            }
+            
+            if (typeof MapColorMapper !== 'undefined') {
+                status += '✓ MapColorMapper 已加载<br>';
+            } else {
+                status += '✗ MapColorMapper 未加载<br>';
+            }
+            
+            result.innerHTML = status;
+        }, 1000);
+    });
+    </script>
+</body>
+</html>
