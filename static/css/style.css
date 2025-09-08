@@ -125,6 +125,7 @@ header p {
     overflow: hidden;
     margin-bottom: 30px;
     min-height: 600px;
+    position: relative;
 }
 
 #world-map {
@@ -334,4 +335,119 @@ header p {
     background: #fef2f2;
     color: #dc2626;
     border: 1px solid #fecaca;
+}
+
+/* 地图控制按钮样式 */
+.map-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    pointer-events: none; /* 让父容器不阻挡点击 */
+}
+
+.control-btn {
+    pointer-events: all; /* 恢复按钮的点击能力 */
+    background: rgba(45, 55, 72, 0.9);
+    color: #f7fafc;
+    border: 2px solid #4a5568;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.control-btn:hover {
+    background: rgba(66, 153, 225, 0.9);
+    border-color: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* 缩放控制 - 左上角 */
+.zoom-controls {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.zoom-btn {
+    font-size: 20px;
+    line-height: 1;
+}
+
+/* 方向控制 - 右上角 */
+.direction-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+    width: 126px; /* 3 * 40px + 2 * 6px gap */
+    height: 86px;  /* 2 * 40px + 1 * 6px gap */
+}
+
+#move-up {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+#move-left {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+#move-right {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+#move-down {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.direction-btn {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .zoom-controls {
+        top: 10px;
+        left: 10px;
+    }
+    
+    .direction-controls {
+        top: 10px;
+        right: 10px;
+        gap: 4px;
+        width: 122px;
+        height: 84px;
+    }
+    
+    .control-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+    }
 }

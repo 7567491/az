@@ -3,6 +3,123 @@
  * Cloud AZ Visualizer Main Application
  */
 
+/**
+ * 区域分类器 - 负责将区域按六大区分类
+ */
+class RegionClassifier {
+    constructor() {
+        // 国家代码到大区的映射表（静态配置，避免重复创建）
+        this.COUNTRY_TO_REGION = Object.freeze({
+            // 北美
+            'US': 'north-america', 
+            'CA': 'north-america',
+            'MX': 'north-america',
+            
+            // 南美  
+            'BR': 'south-america',
+            'AR': 'south-america',
+            'CL': 'south-america',
+            'CO': 'south-america',
+            'PE': 'south-america',
+            'UY': 'south-america',
+            'VE': 'south-america',
+            'EC': 'south-america',
+            'PY': 'south-america',
+            
+            // 欧洲
+            'DE': 'europe', 'GB': 'europe', 'FR': 'europe',
+            'IT': 'europe', 'ES': 'europe', 'NL': 'europe', 
+            'SE': 'europe', 'FI': 'europe', 'IE': 'europe',
+            'PL': 'europe', 'CZ': 'europe', 'AT': 'europe',
+            'BE': 'europe', 'CH': 'europe', 'DK': 'europe',
+            'NO': 'europe', 'PT': 'europe', 'GR': 'europe',
+            
+            // 亚太（不含中国）
+            'JP': 'asia-pacific', 'KR': 'asia-pacific', 'SG': 'asia-pacific',
+            'AU': 'asia-pacific', 'IN': 'asia-pacific', 'ID': 'asia-pacific',
+            'MY': 'asia-pacific', 'TH': 'asia-pacific', 'PH': 'asia-pacific',
+            'AE': 'asia-pacific', 'HK': 'asia-pacific', 'NZ': 'asia-pacific',
+            'VN': 'asia-pacific', 'BD': 'asia-pacific', 'LK': 'asia-pacific',
+            
+            // 中国
+            'CN': 'china'
+        });
+        
+        // 大区显示顺序（不可变）
+        this.CONTINENT_ORDER = Object.freeze([
+            'north-america', 'south-america', 'europe', 
+            'asia-pacific', 'china', 'others'
+        ]);
+        
+        // 大区中文名称映射（不可变）
+        this.CONTINENT_NAMES = Object.freeze({
+            'north-america': '🇺🇸 北美',
+            'south-america': '🇧🇷 南美', 
+            'europe': '🇪🇺 欧洲',
+            'asia-pacific': '🌏 亚太地区',
+            'china': '🇨🇳 中国',
+            'others': '🌐 其他地区'
+        });
+    }
+    
+    /**
+     * 根据国家代码分类区域
+     * @param {string} countryCode - 国家代码
+     * @returns {string} 大区标识
+     */
+    classifyRegion(countryCode) {
+        return this.COUNTRY_TO_REGION[countryCode] || 'others';
+    }
+    
+    /**
+     * 按大区分组区域
+     * @param {Array} regions - 区域列表
+     * @returns {Object} 分组后的区域
+     */
+    groupRegionsByContinent(regions) {
+        const grouped = {};
+        
+        regions.forEach(region => {
+            const continent = this.classifyRegion(region.country_code);
+            
+            if (!grouped[continent]) {
+                grouped[continent] = [];
+            }
+            grouped[continent].push(region);
+        });
+        
+        return grouped;
+    }
+    
+    /**
+     * 获取大区中文名称
+     * @param {string} continent - 大区标识
+     * @returns {string} 中文名称
+     */
+    getContinentName(continent) {
+        return this.CONTINENT_NAMES[continent] || continent;
+    }
+    
+    /**
+     * 获取大区排序数组
+     * @returns {Array} 排序后的大区列表
+     */
+    getContinentOrder() {
+        return [...this.CONTINENT_ORDER]; // 返回副本避免修改
+    }
+    
+    /**
+     * 获取包含区域的排序后大区列表
+     * @param {Object} groupedRegions - 分组后的区域
+     * @returns {Array} 有区域的大区列表（按顺序）
+     */
+    getOrderedContinentsWithRegions(groupedRegions) {
+        return this.CONTINENT_ORDER.filter(continent => 
+            groupedRegions[continent] && groupedRegions[continent].length > 0
+        );
+    }
+}
+
 class CloudAZApp {
     constructor() {
         console.log('🚀 初始化云服务区域可视化系统');
@@ -18,6 +135,9 @@ class CloudAZApp {
         
         // 选中的云服务商
         this.selectedProviders = ['linode', 'digitalocean', 'aliyun', 'tencent'];
+        
+        // 初始化区域分类器
+        this.regionClassifier = new RegionClassifier();
         
         // 初始化
         this.init();
@@ -288,46 +408,20 @@ class CloudAZApp {
         `;
         column.appendChild(header);
         
-        // 按大洲分组
-        const regionsByContinent = this.groupRegionsByContinent(regions);
+        // 使用分类器按大区分组
+        const regionsByContinent = this.regionClassifier.groupRegionsByContinent(regions);
         
-        // 渲染每个大区的区域 - 中国单列
-        ['china', 'americas', 'europe-africa', 'apac', 'others'].forEach(continent => {
-            const continentRegions = regionsByContinent[continent] || [];
-            if (continentRegions.length > 0) {
-                const section = this.createContinentSection(continent, continentRegions);
-                column.appendChild(section);
-            }
+        // 按顺序渲染有区域的大区
+        const orderedContinents = this.regionClassifier.getOrderedContinentsWithRegions(regionsByContinent);
+        orderedContinents.forEach(continent => {
+            const continentRegions = regionsByContinent[continent];
+            const section = this.createContinentSection(continent, continentRegions);
+            column.appendChild(section);
         });
         
         return column;
     }
     
-    /**
-     * 按大区分组区域 - 中国单列
-     */
-    groupRegionsByContinent(regions) {
-        const grouped = {};
-        
-        regions.forEach(region => {
-            let continent;
-            
-            // 中国区域单独分类
-            if (region.country_code === 'CN' || region.region_id?.startsWith('cn-')) {
-                continent = 'china';
-            } else {
-                // 其他区域按原分类
-                continent = region.continent || 'others';
-            }
-            
-            if (!grouped[continent]) {
-                grouped[continent] = [];
-            }
-            grouped[continent].push(region);
-        });
-        
-        return grouped;
-    }
     
     /**
      * 创建大洲区域段
@@ -338,7 +432,7 @@ class CloudAZApp {
         
         // 大洲标题
         const title = document.createElement('h5');
-        title.textContent = this.getContinentName(continent);
+        title.textContent = this.regionClassifier.getContinentName(continent);
         section.appendChild(title);
         
         // 区域列表
@@ -348,9 +442,20 @@ class CloudAZApp {
         regions.forEach(region => {
             const item = document.createElement('div');
             item.className = 'region-item';
+            
+            // 获取中文区域名称，如果没有翻译则使用原名称
+            const chineseRegionName = window.translationManager ? 
+                window.translationManager.getRegionName(region.region_id) : 
+                region.region_name;
+            
+            // 如果中文名称和原名称不同，显示中文名称，否则显示原名称
+            const displayName = (chineseRegionName !== region.region_id) ? 
+                chineseRegionName : 
+                region.region_name;
+                
             item.innerHTML = `
                 <span class="region-code">${region.region_id}</span>
-                <span class="region-name">${region.region_name}</span>
+                <span class="region-name">${displayName}</span>
             `;
             list.appendChild(item);
         });
@@ -359,19 +464,6 @@ class CloudAZApp {
         return section;
     }
     
-    /**
-     * 获取大区中文名称
-     */
-    getContinentName(continent) {
-        const names = {
-            'china': '🇨🇳 中国',
-            'americas': '🌎 美洲',
-            'europe-africa': '🌍 欧洲-非洲', 
-            'apac': '🌏 亚太地区',
-            'others': '🌐 其他地区'
-        };
-        return names[continent] || continent;
-    }
     
     
     /**

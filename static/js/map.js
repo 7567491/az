@@ -12,10 +12,15 @@ class WorldMapVisualizer {
         this.worldData = null;
         this.countries = null;
         this.colorMapper = null;
+        this.zoom = null;
+        this.mapGroup = null;
         
-        // 地图尺寸 - 调整为更适合缩放的比例
-        this.width = 1200;
-        this.height = 600;
+        // 地图尺寸 - 放大一倍以显示更多细节
+        this.width = 1680;
+        this.height = 840;
+        
+        // 初始化翻译管理器
+        this.translationManager = new TranslationManager();
         
         console.log('🗺️ 初始化世界地图可视化组件');
         this.init();
@@ -29,8 +34,11 @@ class WorldMapVisualizer {
             // 设置地图投影
             this.setupProjection();
             
-            // 加载世界地图数据
-            await this.loadWorldData();
+            // 并行加载世界地图数据和翻译数据
+            await Promise.all([
+                this.loadWorldData(),
+                this.translationManager.ensureLoaded()
+            ]);
             
             // 渲染地图
             this.renderMap();
@@ -56,6 +64,23 @@ class WorldMapVisualizer {
             .style('width', '100%')
             .style('height', 'auto')
             .style('background-color', '#1a202c');
+        
+        // 创建地图组，用于缩放和平移
+        this.mapGroup = this.svg.append('g')
+            .attr('class', 'map-group');
+        
+        // 设置缩放行为
+        this.zoom = d3.zoom()
+            .scaleExtent([0.3, 3])  // 缩放范围：30% 到 300%
+            .on('zoom', (event) => {
+                this.mapGroup.attr('transform', event.transform);
+            });
+        
+        // 为SVG添加缩放行为
+        this.svg.call(this.zoom);
+        
+        // 设置控制按钮事件监听
+        this.setupControls();
     }
     
     setupProjection() {
@@ -91,8 +116,8 @@ class WorldMapVisualizer {
     }
     
     renderMap() {
-        // 绘制国家边界
-        const countryPaths = this.svg.selectAll('.country')
+        // 绘制国家边界到地图组中
+        const countryPaths = this.mapGroup.selectAll('.country')
             .data(this.countries.features)
             .enter()
             .append('path')
@@ -120,7 +145,7 @@ class WorldMapVisualizer {
                 this.hideTooltip();
             });
         
-        // 移除缩放功能，使用固定大小显示
+        console.log('✅ 地图渲染完成');
     }
     
     updateColors(regionsData, selectedProviders, colorMapping) {
@@ -134,7 +159,7 @@ class WorldMapVisualizer {
         const countryProviders = this.groupRegionsByCountry(regionsData, selectedProviders);
         
         // 更新国家颜色
-        this.svg.selectAll('.country')
+        this.mapGroup.selectAll('.country')
             .attr('fill', (d) => {
                 const countryCode = this.getCountryCode(d.id);
                 const providers = countryProviders[countryCode] || [];
@@ -337,11 +362,12 @@ class WorldMapVisualizer {
             .style('z-index', 1000);
         
         const countryCode = this.getCountryCode(countryData.id);
+        const chineseName = this.translationManager.getCountryName(countryCode);
         
         tooltip
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 10) + 'px')
-            .html(`国家代码: ${countryCode}<br>ID: ${countryData.id}`);
+            .html(`${chineseName} (${countryCode})`);
     }
     
     hideTooltip() {
@@ -367,6 +393,118 @@ class WorldMapVisualizer {
             .style('width', '100%')
             .style('height', (this.height * scale) + 'px')
             .style('max-height', this.height + 'px');
+    }
+    
+    // 设置控制按钮事件监听
+    setupControls() {
+        // 等待DOM加载完成再绑定事件
+        setTimeout(() => {
+            // 缩放控制
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => this.zoomIn());
+            }
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => this.zoomOut());
+            }
+            
+            // 移动控制
+            const moveUpBtn = document.getElementById('move-up');
+            const moveDownBtn = document.getElementById('move-down');
+            const moveLeftBtn = document.getElementById('move-left');
+            const moveRightBtn = document.getElementById('move-right');
+            
+            if (moveUpBtn) moveUpBtn.addEventListener('click', () => this.moveMap(0, -50));
+            if (moveDownBtn) moveDownBtn.addEventListener('click', () => this.moveMap(0, 50));
+            if (moveLeftBtn) moveLeftBtn.addEventListener('click', () => this.moveMap(-50, 0));
+            if (moveRightBtn) moveRightBtn.addEventListener('click', () => this.moveMap(50, 0));
+            
+            console.log('✅ 地图控制按钮已设置');
+        }, 100);
+    }
+    
+    // 放大地图
+    zoomIn() {
+        if (!this.zoom || !this.svg) return;
+        
+        this.svg.transition().duration(300).call(
+            this.zoom.scaleBy, 1.5
+        );
+        console.log('🔍 地图放大');
+    }
+    
+    // 缩小地图
+    zoomOut() {
+        if (!this.zoom || !this.svg) return;
+        
+        this.svg.transition().duration(300).call(
+            this.zoom.scaleBy, 1 / 1.5
+        );
+        console.log('🔍 地图缩小');
+    }
+    
+    // 移动地图
+    moveMap(deltaX, deltaY) {
+        if (!this.zoom || !this.svg) return;
+        
+        this.svg.transition().duration(300).call(
+            this.zoom.translateBy, deltaX, deltaY
+        );
+        console.log(`🗺️ 地图移动: (${deltaX}, ${deltaY})`);
+    }
+    
+    // 重置地图视图
+    resetView() {
+        if (!this.zoom || !this.svg) return;
+        
+        this.svg.transition().duration(500).call(
+            this.zoom.transform,
+            d3.zoomIdentity
+        );
+        console.log('🏠 地图视图已重置');
+    }
+}
+
+/**
+ * 翻译管理器 - 处理国家和区域的中文名称
+ */
+class TranslationManager {
+    constructor() {
+        this.translations = null;
+        this.isLoaded = false;
+        this.loadTranslations();
+    }
+    
+    async loadTranslations() {
+        try {
+            const response = await fetch('/static/data/translations.json');
+            this.translations = await response.json();
+            this.isLoaded = true;
+            console.log('✅ 翻译数据加载完成');
+        } catch (error) {
+            console.error('❌ 翻译数据加载失败:', error);
+            this.translations = { countries: {}, regions: {} };
+            this.isLoaded = true;
+        }
+    }
+    
+    getCountryName(countryCode) {
+        if (!this.translations) return countryCode;
+        return this.translations.countries[countryCode] || countryCode;
+    }
+    
+    getRegionName(regionId) {
+        if (!this.translations) return regionId;
+        return this.translations.regions[regionId] || regionId;
+    }
+    
+    // 确保翻译数据已加载
+    async ensureLoaded() {
+        if (!this.isLoaded) {
+            await this.loadTranslations();
+        }
     }
 }
 
@@ -409,6 +547,10 @@ class MapColorMapper {
     }
 }
 
+// 创建全局翻译管理器实例
+window.translationManager = new TranslationManager();
+
 // 导出到全局
 window.WorldMapVisualizer = WorldMapVisualizer;
 window.MapColorMapper = MapColorMapper;
+window.TranslationManager = TranslationManager;

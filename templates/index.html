@@ -65,6 +65,23 @@
         
         <!-- 世界地图 -->
         <div class="map-container">
+            <!-- 地图控制按钮 -->
+            <div class="map-controls">
+                <!-- 缩放控制 - 左上角 -->
+                <div class="zoom-controls">
+                    <button id="zoom-in" class="control-btn zoom-btn" title="放大">+</button>
+                    <button id="zoom-out" class="control-btn zoom-btn" title="缩小">−</button>
+                </div>
+                
+                <!-- 方向控制 - 右上角 -->
+                <div class="direction-controls">
+                    <button id="move-up" class="control-btn direction-btn" title="向上移动">↑</button>
+                    <button id="move-left" class="control-btn direction-btn" title="向左移动">←</button>
+                    <button id="move-right" class="control-btn direction-btn" title="向右移动">→</button>
+                    <button id="move-down" class="control-btn direction-btn" title="向下移动">↓</button>
+                </div>
+            </div>
+            
             <div id="world-map">
                 <div style="text-align: center; padding: 100px; color: #64748b;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
