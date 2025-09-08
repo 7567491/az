@@ -7,6 +7,7 @@ import json
 import time
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from .region_mapper import region_mapper, CloudProvider
 
 # 加载环境变量
 load_dotenv()
@@ -53,7 +54,7 @@ class TencentAPI:
                         regions.append({
                             'region_id': region['Region'],
                             'region_name': region['RegionName'],
-                            'country_code': self._map_region_to_country(region['Region']),
+                            'country_code': region_mapper.get_country_code(CloudProvider.TENCENT, region['Region']),
                             'raw_data': region
                         })
             
@@ -104,22 +105,3 @@ class TencentAPI:
             'X-TC-Timestamp': str(timestamp),
             'X-TC-Version': self.version
         }
-    
-    def _map_region_to_country(self, region_id: str) -> str:
-        """将腾讯云区域ID映射到国家代码"""
-        # 腾讯云区域到国家的映射
-        region_mapping = {
-            'ap-beijing': 'CN', 'ap-chengdu': 'CN', 'ap-chongqing': 'CN',
-            'ap-guangzhou': 'CN', 'ap-shanghai': 'CN', 'ap-nanjing': 'CN',
-            'ap-hongkong': 'HK',
-            
-            'ap-singapore': 'SG', 'ap-bangkok': 'TH', 'ap-jakarta': 'ID',
-            'ap-seoul': 'KR', 'ap-tokyo': 'JP',
-            
-            'na-siliconvalley': 'US', 'na-ashburn': 'US', 'na-toronto': 'CA',
-            'sa-saopaulo': 'BR',
-            
-            'eu-frankfurt': 'DE', 'eu-moscow': 'RU'
-        }
-        
-        return region_mapping.get(region_id, 'CN')  # 默认中国

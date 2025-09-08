@@ -142,7 +142,7 @@ class CloudAPICollector:
             # 欧洲-非洲
             'GB': 'europe-africa', 'DE': 'europe-africa', 'FR': 'europe-africa',
             'NL': 'europe-africa', 'IT': 'europe-africa', 'ES': 'europe-africa',
-            'PL': 'europe-africa', 'ZA': 'europe-africa',
+            'SE': 'europe-africa', 'PL': 'europe-africa', 'ZA': 'europe-africa',
             # 亚太
             'CN': 'apac', 'JP': 'apac', 'SG': 'apac', 'AU': 'apac', 'IN': 'apac',
             'KR': 'apac', 'HK': 'apac', 'TH': 'apac', 'ID': 'apac', 'MY': 'apac',

@@ -9,6 +9,7 @@ from datetime import datetime
 import urllib.parse
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from .region_mapper import region_mapper, CloudProvider
 
 # 加载环境变量
 load_dotenv()
@@ -62,7 +63,7 @@ class AliyunAPI:
                     regions.append({
                         'region_id': region['RegionId'],
                         'region_name': region['LocalName'],
-                        'country_code': self._map_region_to_country(region['RegionId']),
+                        'country_code': region_mapper.get_country_code(CloudProvider.ALIYUN, region['RegionId']),
                         'raw_data': region
                     })
             
@@ -92,22 +93,3 @@ class AliyunAPI:
         
         return signature
     
-    def _map_region_to_country(self, region_id: str) -> str:
-        """将阿里云区域ID映射到国家代码"""
-        # 阿里云区域到国家的映射
-        region_mapping = {
-            'cn-beijing': 'CN', 'cn-zhangjiakou': 'CN', 'cn-huhehaote': 'CN',
-            'cn-wulanchabu': 'CN', 'cn-hangzhou': 'CN', 'cn-shanghai': 'CN',
-            'cn-nanjing': 'CN', 'cn-shenzhen': 'CN', 'cn-heyuan': 'CN',
-            'cn-guangzhou': 'CN', 'cn-fuzhou': 'CN', 'cn-wuhan-lr': 'CN',
-            'cn-chengdu': 'CN', 'cn-hongkong': 'HK', 'cn-qingdao': 'CN',
-            
-            'ap-northeast-1': 'JP', 'ap-northeast-2': 'KR', 'ap-southeast-1': 'SG',
-            'ap-southeast-3': 'MY', 'ap-southeast-5': 'ID', 'ap-southeast-6': 'PH',
-            'ap-southeast-7': 'TH',
-            
-            'us-east-1': 'US', 'us-west-1': 'US', 'na-south-1': 'MX',
-            'eu-west-1': 'GB', 'eu-central-1': 'DE', 'me-east-1': 'AE'
-        }
-        
-        return region_mapping.get(region_id, 'CN')  # 默认中国

@@ -3,6 +3,7 @@ import asyncio
 import requests
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from .region_mapper import region_mapper, CloudProvider
 
 # 加载环境变量
 load_dotenv()
@@ -43,7 +44,7 @@ class DigitalOceanAPI:
                     regions.append({
                         'region_id': region['slug'],
                         'region_name': region['name'], 
-                        'country_code': self._map_region_to_country(region['slug']),
+                        'country_code': region_mapper.get_country_code(CloudProvider.DIGITALOCEAN, region['slug']),
                         'raw_data': region
                     })
             
@@ -52,20 +53,3 @@ class DigitalOceanAPI:
         except Exception as e:
             print(f"Error fetching DigitalOcean regions: {e}")
             return []
-    
-    def _map_region_to_country(self, region_slug: str) -> str:
-        """将DigitalOcean区域slug映射到国家代码"""
-        # DigitalOcean区域到国家的映射
-        region_mapping = {
-            'nyc1': 'US', 'nyc2': 'US', 'nyc3': 'US',
-            'sfo1': 'US', 'sfo2': 'US', 'sfo3': 'US',
-            'tor1': 'CA',
-            'lon1': 'GB',
-            'fra1': 'DE',
-            'ams2': 'NL', 'ams3': 'NL',
-            'sgp1': 'SG',
-            'blr1': 'IN',
-            'syd1': 'AU'
-        }
-        
-        return region_mapping.get(region_slug, 'US')  # 默认美国

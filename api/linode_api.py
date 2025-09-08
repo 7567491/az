@@ -3,6 +3,7 @@ import asyncio
 import requests
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from .region_mapper import region_mapper, CloudProvider
 
 # 加载环境变量
 load_dotenv()
@@ -43,7 +44,7 @@ class LinodeAPI:
                     regions.append({
                         'region_id': region['id'],
                         'region_name': region['label'],
-                        'country_code': self._map_region_to_country(region['id']),
+                        'country_code': region_mapper.get_country_code(CloudProvider.LINODE, region['id']),
                         'raw_data': region
                     })
             
@@ -52,17 +53,3 @@ class LinodeAPI:
         except Exception as e:
             print(f"Error fetching Linode regions: {e}")
             return []
-    
-    def _map_region_to_country(self, region_id: str) -> str:
-        """将Linode区域ID映射到国家代码"""
-        # Linode区域到国家的映射
-        region_mapping = {
-            'us-east': 'US', 'us-central': 'US', 'us-west': 'US',
-            'us-southeast': 'US', 'us-lax': 'US', 'us-mia': 'US',
-            'ca-central': 'CA', 
-            'eu-west': 'GB', 'eu-central': 'DE', 'eu-south': 'IT',
-            'ap-south': 'SG', 'ap-northeast': 'JP', 'ap-southeast': 'AU',
-            'ap-west': 'IN'
-        }
-        
-        return region_mapping.get(region_id, 'US')  # 默认美国
